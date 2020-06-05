@@ -12,16 +12,13 @@ void main() => runApp(MyApp());
  
  class LocationPageState extends State<MyApp> {
    Position _position;
-   Position intialLocation;
-   Position endLocation;
-   double timeForPositiveAcceleration;
+    
+   double  timeForPositiveAcceleration;
    double timeForNegativeAcceleration;
-   StreamSubscription <Position> positionStream;
-  
-   
-   Future<double> getDistance (intialLocation,endLocation)async{
-     return( await Geolocator().distanceBetween(endLocation?.altitude,endLocation?.longitude, intialLocation?.latitude, intialLocation?.longitude)); 
-   }
+   StreamSubscription <Position> positionStream ;
+   double speed;
+   bool flag;
+   Stopwatch timer=new Stopwatch(); 
    @override
    void initState() {
     super.initState();
@@ -29,32 +26,36 @@ void main() => runApp(MyApp());
     distanceFilter:10 );
     positionStream= Geolocator().getPositionStream(locationOptions).listen((Position position){
      setState (() {
-       switch ((_position.speed*3.6).toStringAsPrecision(2)){
-       case '10.0':
-       {
-       intialLocation=_position;
-       }
-       break;
-       case '30.0':
-       {
-         endLocation=_position;
-       }
-       break;
-       }
+       _position=position;
+       speed=(_position?.speed??0)*3.6;
+       if(speed.round()>=10 &&speed.round()<30)
+        {
+         timer.start();
+        }
+        
+       else if(speed.round()>=30)
+        { 
+          setState(() {
+            
+            timeForPositiveAcceleration=(timer.elapsed.inSeconds) as double;
+          });
+          timer.reset();
+          timer.start();
+         
+        }
       
+       else if(speed<=10)
+              {
+            setState(() {
+           timeForNegativeAcceleration=(timer.elapsed.inSeconds) as double;
+         });
+        }
+      timer.stop();
      });
     });
      
    }
-   Future<void> getTime() async{
-     if (endLocation!=null && intialLocation!=null)
-     {
-       
-     timeForPositiveAcceleration= 20/(10/(await getDistance(endLocation, intialLocation)));
-    
-     timeForNegativeAcceleration= 20/(10/(await getDistance(endLocation, intialLocation)));
-   }
-   }
+   
    @override
    void dispose(){
      super.dispose();
@@ -62,7 +63,7 @@ void main() => runApp(MyApp());
    }
    @override
    Widget build(BuildContext context) {
-     getTime();
+    
      return new MaterialApp(
      home:new Scaffold(
        appBar: AppBar(title:Text( 'location app')),
@@ -78,7 +79,7 @@ void main() => runApp(MyApp());
               ),
             ),
             Text(
-              '${_position?.speed}',
+              '${speed??0.0}',
               style: TextStyle(
                 fontSize: 40.0,
                 color: Colors.green[800],
@@ -92,7 +93,7 @@ void main() => runApp(MyApp());
               ),
             ),
             Text(
-              'Time from 30 to 10 :',
+              'Time from 10 to 30 :',
             
               style: TextStyle(
                 fontSize: 30.0,
